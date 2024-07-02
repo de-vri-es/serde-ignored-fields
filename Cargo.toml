@@ -1,0 +1,8 @@
+[package]
+name = "serde-ignored-fields"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+indexmap = "2.2.6"
+serde = "1.0.203"
