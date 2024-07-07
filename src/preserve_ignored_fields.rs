@@ -1,8 +1,9 @@
 use crate::key::Key;
 
+#[derive(Debug, Clone)]
 pub struct PreverveIgnoredFields<T, U> {
 	pub value: T,
-	pub unknown_fields: U,
+	pub ignored_fields: U,
 }
 
 impl<'de, T, U> serde::de::Deserialize<'de> for PreverveIgnoredFields<T, U>
@@ -11,21 +12,21 @@ where
 	U: crate::IgnoredFields<'de>,
 {
 	fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-		let mut unknown_fields = U::new();
-		let value = T::deserialize(Wrap::new(deserializer, &mut unknown_fields))?;
-		Ok(Self { value, unknown_fields })
+		let mut ignored_fields = U::new();
+		let value = T::deserialize(Wrap::new(deserializer, &mut ignored_fields))?;
+		Ok(Self { value, ignored_fields })
 	}
 }
 
-/// Wrapper for a Deserializer and Visitor to preserve unknown fields of a map.
+/// Wrapper for a Deserializer and Visitor to preserve ignored fields of a map.
 struct Wrap<'a, Inner, IgnoredFields> {
 	inner: Inner,
-	unknown_fields: &'a mut IgnoredFields,
+	ignored_fields: &'a mut IgnoredFields,
 }
 
 impl<'a, Inner, IgnoredFields> Wrap<'a, Inner, IgnoredFields> {
-	fn new(inner: Inner, unknown_fields: &'a mut IgnoredFields) -> Self {
-		Self { inner, unknown_fields }
+	fn new(inner: Inner, ignored_fields: &'a mut IgnoredFields) -> Self {
+		Self { inner, ignored_fields }
 	}
 }
 
@@ -84,7 +85,7 @@ where
 
 	forward_deserializer!(
 		fn (self, visitor) {
-			let visitor = Wrap::new(visitor, self.unknown_fields);
+			let visitor = Wrap::new(visitor, self.ignored_fields);
 		}
 		for [
 			any,
@@ -134,22 +135,22 @@ where
 	}
 
 	fn visit_map<A: serde::de::MapAccess<'de>>(self, map: A) -> Result<Self::Value, A::Error> {
-		self.inner.visit_map(MapAccess::new(map, self.unknown_fields))
+		self.inner.visit_map(MapAccess::new(map, self.ignored_fields))
 	}
 }
 
-/// Wrapper for a MapAccess to preserve unknown fields.
+/// Wrapper for a MapAccess to preserve ignored fields.
 struct MapAccess<'a, 'de, M, IgnoredFields> {
 	parent: M,
-	unknown_fields: &'a mut IgnoredFields,
+	ignored_fields: &'a mut IgnoredFields,
 	last_key: Option<Key<'de>>,
 }
 
 impl<'a, 'de, M, IgnoredFields> MapAccess<'a, 'de, M, IgnoredFields> {
-	fn new(parent: M, unknown_fields: &'a mut IgnoredFields) -> Self {
+	fn new(parent: M, ignored_fields: &'a mut IgnoredFields) -> Self {
 		Self {
 			parent,
-			unknown_fields,
+			ignored_fields,
 			last_key: None,
 		}
 	}
@@ -172,7 +173,7 @@ where
 
 	fn next_value_seed<V: serde::de::DeserializeSeed<'de>>(&mut self, seed: V) -> Result<V::Value, Self::Error> {
 		self.parent
-			.next_value_seed(CaptureIgnored::new(seed, self.last_key.take(), self.unknown_fields))
+			.next_value_seed(CaptureIgnored::new(seed, self.last_key.take(), self.ignored_fields))
 	}
 }
 
@@ -307,15 +308,15 @@ where
 struct CaptureIgnored<'a, 'de, Inner, IgnoredFields> {
 	inner: Inner,
 	key: Option<Key<'de>>,
-	unknown_fields: &'a mut IgnoredFields,
+	ignored_fields: &'a mut IgnoredFields,
 }
 
 impl<'a, 'de, Inner, IgnoredFields> CaptureIgnored<'a, 'de, Inner, IgnoredFields> {
-	fn new(inner: Inner, key: Option<Key<'de>>, unknown_fields: &'a mut IgnoredFields) -> Self {
+	fn new(inner: Inner, key: Option<Key<'de>>, ignored_fields: &'a mut IgnoredFields) -> Self {
 		Self {
 			inner,
 			key,
-			unknown_fields,
+			ignored_fields,
 		}
 	}
 }
@@ -329,7 +330,7 @@ where
 
 	fn deserialize<D: serde::Deserializer<'de>>(self, deserializer: D) -> Result<Self::Value, D::Error> {
 		self.inner
-			.deserialize(CaptureIgnored::new(deserializer, self.key, self.unknown_fields))
+			.deserialize(CaptureIgnored::new(deserializer, self.key, self.ignored_fields))
 	}
 }
 
@@ -385,7 +386,7 @@ where
 			.into_deserializer();
 		let key = IgnoredFields::Key::deserialize(key)?;
 		let value = IgnoredFields::Value::deserialize(self.inner)?;
-		self.unknown_fields.insert(key, value)?;
+		self.ignored_fields.insert(key, value)?;
 		visitor.visit_unit()
 	}
 
