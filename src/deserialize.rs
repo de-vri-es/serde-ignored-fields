@@ -1,15 +1,10 @@
 use crate::key::Key;
-
-#[derive(Debug, Clone)]
-pub struct PreverveIgnoredFields<T, U> {
-	pub value: T,
-	pub ignored_fields: U,
-}
+use crate::{DeserializeIgnoredFields, PreverveIgnoredFields};
 
 impl<'de, T, U> serde::de::Deserialize<'de> for PreverveIgnoredFields<T, U>
 where
 	T: serde::Deserialize<'de>,
-	U: crate::IgnoredFields<'de>,
+	U: DeserializeIgnoredFields<'de>,
 {
 	fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
 		let mut ignored_fields = U::new();
@@ -79,7 +74,7 @@ macro_rules! forward_deserializer {
 impl<'a, 'de, D, IgnoredFields> serde::de::Deserializer<'de> for Wrap<'a, D, IgnoredFields>
 where
 	D: serde::de::Deserializer<'de>,
-	IgnoredFields: crate::IgnoredFields<'de>,
+	IgnoredFields: DeserializeIgnoredFields<'de>,
 {
 	type Error = D::Error;
 
@@ -126,7 +121,7 @@ where
 impl<'a, 'de, V, IgnoredFields> serde::de::Visitor<'de> for Wrap<'a, V, IgnoredFields>
 where
 	V: serde::de::Visitor<'de>,
-	IgnoredFields: crate::IgnoredFields<'de>,
+	IgnoredFields: DeserializeIgnoredFields<'de>,
 {
 	type Value = V::Value;
 
@@ -159,7 +154,7 @@ impl<'a, 'de, M, IgnoredFields> MapAccess<'a, 'de, M, IgnoredFields> {
 impl<'a, 'de, M, U> serde::de::MapAccess<'de> for MapAccess<'a, 'de, M, U>
 where
 	M: serde::de::MapAccess<'de>,
-	U: crate::IgnoredFields<'de>,
+	U: DeserializeIgnoredFields<'de>,
 {
 	type Error = M::Error;
 
@@ -324,7 +319,7 @@ impl<'a, 'de, Inner, IgnoredFields> CaptureIgnored<'a, 'de, Inner, IgnoredFields
 impl<'a, 'de, Seed, IgnoredFields> serde::de::DeserializeSeed<'de> for CaptureIgnored<'a, 'de, Seed, IgnoredFields>
 where
 	Seed: serde::de::DeserializeSeed<'de>,
-	IgnoredFields: crate::IgnoredFields<'de>,
+	IgnoredFields: DeserializeIgnoredFields<'de>,
 {
 	type Value = Seed::Value;
 
@@ -337,7 +332,7 @@ where
 impl<'a, 'de, D, IgnoredFields> serde::Deserializer<'de> for CaptureIgnored<'a, 'de, D, IgnoredFields>
 where
 	D: serde::Deserializer<'de>,
-	IgnoredFields: crate::IgnoredFields<'de>,
+	IgnoredFields: DeserializeIgnoredFields<'de>,
 {
 	type Error = D::Error;
 

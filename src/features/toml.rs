@@ -1,4 +1,4 @@
-impl<'de> crate::IgnoredFields<'de> for toml::Table {
+impl<'de> crate::DeserializeIgnoredFields<'de> for toml::Table {
 	type Key = String;
 	type Value = toml::Value;
 
@@ -17,5 +17,18 @@ impl<'de> crate::IgnoredFields<'de> for toml::Table {
 				Err(E::custom(format!("duplicate field: {:?}", x.key())))
 			}
 		}
+	}
+}
+
+impl crate::SerializeIgnoredFields for toml::Table {
+	type Key = String;
+	type Value = toml::Value;
+
+	fn len(&self) -> usize {
+		toml::Table::len(self)
+	}
+
+	fn iter(&self) -> impl Iterator<Item = (&Self::Key, &Self::Value)> {
+		toml::Table::iter(self)
 	}
 }

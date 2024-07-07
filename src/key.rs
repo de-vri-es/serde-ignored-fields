@@ -1,5 +1,6 @@
 use std::marker::PhantomData;
 
+#[derive(Debug, Clone, PartialEq, PartialOrd)]
 pub enum Key<'de> {
 	Bool(bool),
 	I8(i8),
