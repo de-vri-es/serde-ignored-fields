@@ -71,7 +71,7 @@ macro_rules! forward_deserializer {
 	(@ fn $ident:ident($self:ident, $visitor:ident) $(( $($arg_name:ident: $arg_type:ty),* $(,)?))? { $($pre:tt)* }) => {
 		fn $ident<V: serde::de::Visitor<'de>>($self, $($($arg_name: $arg_type,)*)? $visitor: V) -> Result<V::Value, Self::Error> {
 			$($pre)*
-				$self.inner.$ident($($($arg_name,)*)? $visitor )
+			$self.inner.$ident($($($arg_name,)*)? $visitor )
 		}
 	}
 }
@@ -131,8 +131,13 @@ where
 	type Value = V::Value;
 
 	fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+		// TODO: improve error message
 		self.inner.expecting(formatter)
 	}
+
+	// fn visit_newtype_struct<D: serde::Deserializer<'de>>(self, deserializer: D) -> Result<Self::Value, D::Error> {
+	// 	self.inner.visit_newtype_struct(Wrap::new(deserializer, self.ignored_fields))
+	// }
 
 	fn visit_map<A: serde::de::MapAccess<'de>>(self, map: A) -> Result<Self::Value, A::Error> {
 		self.inner.visit_map(MapAccess::new(map, self.ignored_fields))
@@ -149,6 +154,9 @@ struct MapAccess<'a, 'de, M, IgnoredFields> {
 
 	/// The previous key we encountered.
 	last_key: Option<Key<'de>>,
+
+	/// True if `next_key_seed()` was called, but not yet `next_value_seed()`.
+	retrieved_key: bool,
 }
 
 impl<'a, 'de, M, IgnoredFields> MapAccess<'a, 'de, M, IgnoredFields> {
@@ -158,6 +166,7 @@ impl<'a, 'de, M, IgnoredFields> MapAccess<'a, 'de, M, IgnoredFields> {
 			parent,
 			ignored_fields,
 			last_key: None,
+			retrieved_key: false,
 		}
 	}
 }
@@ -174,12 +183,30 @@ where
 	}
 
 	fn next_key_seed<K: serde::de::DeserializeSeed<'de>>(&mut self, seed: K) -> Result<Option<K::Value>, Self::Error> {
-		self.parent.next_key_seed(CaptureKey::new(seed, &mut self.last_key))
+		use serde::de::Error;
+
+		// If someone doesn't call `next_value_seed()` for the last key we also add it to ignored fields.
+		if self.retrieved_key {
+			let key = self.last_key.take()
+				.ok_or_else(|| Self::Error::custom("unsupported key type for ignored field"))?;
+			let key = serde::Deserialize::deserialize(key.into_deserializer::<Self::Error>())?;
+			let value = self.next_value()?;
+			self.ignored_fields.insert(key, value)?;
+		}
+
+		self.retrieved_key = true;
+		self.last_key = None;
+		let result = self.parent.next_key_seed(CaptureKey::new(seed, &mut self.last_key));
+		eprintln!("next_key_seed: {:?}", self.last_key);
+		result
 	}
 
 	fn next_value_seed<V: serde::de::DeserializeSeed<'de>>(&mut self, seed: V) -> Result<V::Value, Self::Error> {
-		self.parent
-			.next_value_seed(CaptureIgnored::new(seed, self.last_key.take(), self.ignored_fields))
+		self.retrieved_key = false;
+		let result = self.parent
+			.next_value_seed(CaptureIgnored::new(seed, self.last_key.take(), self.ignored_fields));
+		eprintln!("next_value_seed: {:?}", self.ignored_fields);
+		result
 	}
 }
 
@@ -361,8 +388,8 @@ where
 	type Error = D::Error;
 
 	forward_deserializer!(
-		fn deserialize(self, visitor) {} for [
-			any,
+		fn deserialize(self, visitor) { } for [
+			// any,
 			bool,
 			i8,
 			i16,
@@ -395,13 +422,18 @@ where
 		]
 	);
 
+	fn deserialize_any<V: serde::de::Visitor<'de>>(self, visitor: V) -> Result<V::Value, Self::Error> {
+		eprintln!("CaptureIgnored::deserialize_any");
+		self.inner.deserialize_any(visitor)
+	}
+
 	fn deserialize_ignored_any<V: serde::de::Visitor<'de>>(self, visitor: V) -> Result<V::Value, Self::Error> {
 		use serde::de::{Deserialize, Error};
 
 		// TODO: better error
 		let key = self
 			.key
-			.ok_or_else(|| Self::Error::custom("unsupported key type"))?
+			.ok_or_else(|| Self::Error::custom("unsupported key type for ignored field"))?
 			.into_deserializer();
 		let key = IgnoredFields::Key::deserialize(key)?;
 		let value = IgnoredFields::Value::deserialize(self.inner)?;
