@@ -6,16 +6,20 @@ edition = "2021"
 [features]
 serde_json = ["dep:serde_json"]
 serde_yaml = ["dep:serde_yaml"]
+serde_yml = ["dep:serde_yml"]
 toml = ["dep:toml"]
 
 [dependencies]
-indexmap = "2.2.6"
 serde = "1.0.203"
 serde_json = { version = "1.0.120", optional = true }
 serde_yaml = { version = "0.9.34", optional = true }
+serde_yml = { version = "0.0.10", optional = true }
 toml = { version = "0.8.14", optional = true }
 
 [dev-dependencies]
-serde-ignored-fields = { path = ".", features = ["serde_json", "serde_yaml", "toml"] }
+serde-ignored-fields = { path = ".", features = ["serde_json", "serde_yaml", "serde_yml", "toml"] }
+serde_json = { version = "1.0.120", features = ["preserve_order"] }
+toml = { version = "0.8.14", features = ["preserve_order"] }
 serde = { version = "1.0.203", features = ["derive"] }
 assert2 = "0.3.14"
+indoc = "2.0.5"

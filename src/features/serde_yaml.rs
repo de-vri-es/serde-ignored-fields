@@ -2,10 +2,6 @@ impl<'de> crate::DeserializeIgnoredFields<'de> for serde_yaml::Mapping {
 	type Key = serde_yaml::Value;
 	type Value = serde_yaml::Value;
 
-	fn new() -> Self {
-		Self::new()
-	}
-
 	fn insert<E: serde::de::Error>(&mut self, key: Self::Key, value: Self::Value) -> Result<(), E> {
 		use serde_yaml::mapping::Entry;
 		match self.entry(key) {

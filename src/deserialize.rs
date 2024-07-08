@@ -7,7 +7,7 @@ where
 	U: DeserializeIgnoredFields<'de>,
 {
 	fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-		let mut ignored_fields = U::new();
+		let mut ignored_fields = U::default();
 		let value = T::deserialize(Wrap::new(deserializer, &mut ignored_fields))?;
 		Ok(Self { value, ignored_fields })
 	}
