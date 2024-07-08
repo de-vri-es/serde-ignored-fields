@@ -10,12 +10,17 @@ where
 	}
 }
 
+/// Wraper for a [`serde::Serializer`] or [`serde::ser::SerializeMap`] to inject ignored fields.
 struct Serializer<'a, Inner, IgnoredFields> {
+	/// The wrapped serializer.
 	inner: Inner,
+
+	/// The ignored fields to add.
 	ignored_fields: &'a IgnoredFields,
 }
 
 impl<'a, Inner, IgnoredFields> Serializer<'a, Inner, IgnoredFields> {
+	/// Wrap a serializer.
 	fn new(inner: Inner, ignored_fields: &'a IgnoredFields) -> Self {
 		Self { inner, ignored_fields }
 	}

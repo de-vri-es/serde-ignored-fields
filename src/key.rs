@@ -1,5 +1,9 @@
 use std::marker::PhantomData;
 
+/// A type used to tore keys during deserialization.
+///
+/// Not exposed directly to the user.
+/// Instead, the key given to the user is deserialized from this type.
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 pub enum Key<'de> {
 	Bool(bool),
@@ -23,6 +27,7 @@ pub enum Key<'de> {
 }
 
 impl<'de> Key<'de> {
+	/// Convert the key into a deserializer.
 	pub fn into_deserializer<E: serde::de::Error>(self) -> KeyDeserializer<'de, E> {
 		KeyDeserializer {
 			key: self,
@@ -31,6 +36,9 @@ impl<'de> Key<'de> {
 	}
 }
 
+/// Deserializer that consumes a [`Key`].
+///
+/// Used to attach a specific error type for use in deserialization.
 pub struct KeyDeserializer<'de, E> {
 	key: Key<'de>,
 	_error: PhantomData<fn() -> E>,

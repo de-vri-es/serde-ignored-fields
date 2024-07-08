@@ -13,20 +13,25 @@ where
 	}
 }
 
-/// Wrapper for a Deserializer and Visitor to preserve ignored fields of a map.
+/// Wrapper for a [`serde::Deserializer`] or [`serde::Visitor`] to preserve ignored fields of a map.
 struct Wrap<'a, Inner, IgnoredFields> {
+	/// The wrapped [`serde::Deserializer`] or [`serde::de::Visitor`].
 	inner: Inner,
+
+	/// Collection to add ignored fields into.
 	ignored_fields: &'a mut IgnoredFields,
 }
 
 impl<'a, Inner, IgnoredFields> Wrap<'a, Inner, IgnoredFields> {
+	/// Wrapper for a [`serde::Deserializer`] or [`serde::Visitor`].
 	fn new(inner: Inner, ignored_fields: &'a mut IgnoredFields) -> Self {
 		Self { inner, ignored_fields }
 	}
 }
 
+/// Forward deserialize implementations to `self.inner` with some glue code.
 macro_rules! forward_deserializer {
-	(fn($self:ident, $visitor:ident) $pre:tt for [$($ident:ident),* $(,)?]) => {
+	(fn deserialize($self:ident, $visitor:ident) $pre:tt for [$($ident:ident),* $(,)?]) => {
 		$(
 			forward_deserializer!(@map_ident $ident($self, $visitor) $pre);
 		)*
@@ -79,7 +84,7 @@ where
 	type Error = D::Error;
 
 	forward_deserializer!(
-		fn (self, visitor) {
+		fn deserialize(self, visitor) {
 			let visitor = Wrap::new(visitor, self.ignored_fields);
 		}
 		for [
@@ -134,14 +139,20 @@ where
 	}
 }
 
-/// Wrapper for a MapAccess to preserve ignored fields.
+/// Wrapper for a [`serde::de::MapAccess`] to preserve ignored fields.
 struct MapAccess<'a, 'de, M, IgnoredFields> {
+	/// The parent [`serde::de::MapAccess`] being wrapped.
 	parent: M,
+
+	/// The collection to add ignored fields to.
 	ignored_fields: &'a mut IgnoredFields,
+
+	/// The previous key we encountered.
 	last_key: Option<Key<'de>>,
 }
 
 impl<'a, 'de, M, IgnoredFields> MapAccess<'a, 'de, M, IgnoredFields> {
+	/// Wrap an existing [`serde::de::MapAccess`].
 	fn new(parent: M, ignored_fields: &'a mut IgnoredFields) -> Self {
 		Self {
 			parent,
@@ -172,13 +183,19 @@ where
 	}
 }
 
-/// Wrapper for a DeserializeSeed, Deserializer and Visitor to store the deserialized value in the `key` field.
+/// Wrapper for a [`serde::de::DeserializeSeed`], [`serde::Deserializer`] and [`serde::de::Visitor`] to store the deserialized value in the `key` field.
+///
+/// Used to capture a key of a map entry that is being deserialized.
 struct CaptureKey<'a, 'de, Inner> {
+	/// The wrapped object.
 	inner: Inner,
+
+	/// The place to store the deserialized value.
 	key: &'a mut Option<Key<'de>>,
 }
 
 impl<'a, 'de, Inner> CaptureKey<'a, 'de, Inner> {
+	/// Wrap a [`serde::de::DeserializeSeed`], [`serde::Deserializer`] or [`serde::de::Visitor`].
 	fn new(inner: Inner, key: &'a mut Option<Key<'de>>) -> Self {
 		Self { inner, key }
 	}
@@ -202,7 +219,7 @@ where
 	type Error = D::Error;
 
 	forward_deserializer!(
-		fn (self, visitor) {
+		fn deserialize(self, visitor) {
 			let visitor = CaptureKey::new(visitor, self.key);
 		} for [
 			any,
@@ -244,6 +261,7 @@ where
 	}
 }
 
+/// Macro to forward visitor function the `self.inner` while also capturing the value in `self.key`.
 macro_rules! forward_visitor {
 	($(($ident:ident, $type:ty, $variant:ident))*) => {
 		$(
@@ -299,14 +317,20 @@ where
 	// TODO: implement remaining visit functions to forward and record error details for CaptureIgnored.
 }
 
-/// Wrapper for a DeserializeSeed, Deserializer and Visitor to store the deserialized value in the `key` field.
+/// Wrapper for a [`serde::de::DeserializeSeed`], [`serde::Deserializer`] and [`serde::de::Visitor`] to add `ignored_any` map entries to `self.ignored_fields`.
 struct CaptureIgnored<'a, 'de, Inner, IgnoredFields> {
+	/// The wrapped object.
 	inner: Inner,
+
+	/// The last deserialized key.
 	key: Option<Key<'de>>,
+
+	/// The collection of ignored fields.
 	ignored_fields: &'a mut IgnoredFields,
 }
 
 impl<'a, 'de, Inner, IgnoredFields> CaptureIgnored<'a, 'de, Inner, IgnoredFields> {
+	/// Wrap an object.
 	fn new(inner: Inner, key: Option<Key<'de>>, ignored_fields: &'a mut IgnoredFields) -> Self {
 		Self {
 			inner,
@@ -337,7 +361,7 @@ where
 	type Error = D::Error;
 
 	forward_deserializer!(
-		fn (self, visitor) {} for [
+		fn deserialize(self, visitor) {} for [
 			any,
 			bool,
 			i8,
