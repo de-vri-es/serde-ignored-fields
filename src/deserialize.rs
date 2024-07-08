@@ -1,7 +1,7 @@
 use crate::key::Key;
-use crate::{DeserializeIgnoredFields, PreverveIgnoredFields};
+use crate::{DeserializeIgnoredFields, PreserveIgnoredFields};
 
-impl<'de, T, U> serde::de::Deserialize<'de> for PreverveIgnoredFields<T, U>
+impl<'de, T, U> serde::de::Deserialize<'de> for PreserveIgnoredFields<T, U>
 where
 	T: serde::Deserialize<'de>,
 	U: DeserializeIgnoredFields<'de>,

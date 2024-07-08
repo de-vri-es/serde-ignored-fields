@@ -33,19 +33,19 @@
 //! But if you are not in control of the type you are out of luck.
 //!
 //! Until now!
-//! Now you can wrap your type in [`PreverveIgnoredFields`]:
+//! Now you can wrap your type in [`PreserveIgnoredFields`]:
 //!
 //! ```
 //! # fn main() -> Result<(), Box<dyn std::error::Error>>{
 //! # use assert2::assert;
-//! use serde_ignored_fields::PreverveIgnoredFields;
+//! use serde_ignored_fields::PreserveIgnoredFields;
 //!
 //! #[derive(serde::Deserialize, serde::Serialize)]
 //! struct Thing {
 //!   name: String,
 //! }
 //!
-//! let thing: PreverveIgnoredFields<Thing, serde_yaml::Mapping> = serde_yaml::from_str("
+//! let thing: PreserveIgnoredFields<Thing, serde_yaml::Mapping> = serde_yaml::from_str("
 //!   name: Turbo Encabulator
 //!   base_plate:
 //!     prefabulated: true
@@ -65,7 +65,7 @@
 //! Because `serde` does not provide first class support for capturing ignored fields, there are some limitations.
 //!
 //! ## Self-describing format
-//! First, [`PreverveIgnoredFields`] only works with a self-describing format such as JSON, YAML or TOML.
+//! First, [`PreserveIgnoredFields`] only works with a self-describing format such as JSON, YAML or TOML.
 //! This should not come as a surprise, and will not be a real limitation in practise
 //! (how can you have ignored fields if the data format doesn't tell you what the fields are?).
 //!
@@ -81,7 +81,7 @@
 //!
 //! It also means that it will not work for types that first deserialize into something like [`serde_json::Value`] before processing the value further.
 //! When deserialized, the [`serde_json::Value`] uses all fields.
-//! The next processing step may discard them again, but there is no way for [`PreverveIgnoredFields`] to know about this.
+//! The next processing step may discard them again, but there is no way for [`PreserveIgnoredFields`] to know about this.
 //!
 //! Structs that use the standard serde derive macros from [`serde`] will always work.
 //! Enums using the derive macros will only work if they are *adjectently tagged* (they have a serde `tag = "..."` *and* `content = "..."` attribute).
@@ -101,7 +101,7 @@ mod serialize;
 ///
 /// Be sure the read the [main library documentation](crate) about the limitations.
 #[derive(Debug, Clone, Default, PartialEq)]
-pub struct PreverveIgnoredFields<T, U> {
+pub struct PreserveIgnoredFields<T, U> {
 	/// The wrapped value.
 	pub value: T,
 
@@ -109,14 +109,14 @@ pub struct PreverveIgnoredFields<T, U> {
 	pub ignored_fields: U,
 }
 
-impl<T, U> PreverveIgnoredFields<T, U> {
-	/// Create a new [`PreverveIgnoredFields`] struct from a wrapped value and the ignored fields.
+impl<T, U> PreserveIgnoredFields<T, U> {
+	/// Create a new [`PreserveIgnoredFields`] struct from a wrapped value and the ignored fields.
 	pub fn new(value: T, ignored_fields: U) -> Self {
 		Self { value, ignored_fields }
 	}
 }
 
-impl<T, U: Default> From<T> for PreverveIgnoredFields<T, U> {
+impl<T, U: Default> From<T> for PreserveIgnoredFields<T, U> {
 	fn from(value: T) -> Self {
 		Self::new(value, U::default())
 	}

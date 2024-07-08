@@ -2,9 +2,9 @@
 
 use assert2::{assert, check, let_assert};
 use indoc::indoc;
-use serde_ignored_fields::PreverveIgnoredFields;
+use serde_ignored_fields::PreserveIgnoredFields;
 
-fn parse<T: serde::de::DeserializeOwned>(data: &str) -> Result<PreverveIgnoredFields<T, serde_yaml::Mapping>, serde_yaml::Error> {
+fn parse<T: serde::de::DeserializeOwned>(data: &str) -> Result<PreserveIgnoredFields<T, serde_yaml::Mapping>, serde_yaml::Error> {
 	serde::Deserialize::deserialize(serde_yaml::Deserializer::from_str(data))
 }
 
@@ -43,7 +43,7 @@ fn error_on_externally_tagged_enum() {
 		},
 	}
 
-	let value = PreverveIgnoredFields {
+	let value = PreserveIgnoredFields {
 		value: Enum::A {
 			field1: "Hello".into(),
 			field2: "World!".into(),
@@ -79,7 +79,7 @@ fn round_trip_internally_tagged_enum() {
 		},
 	}
 
-	let value = PreverveIgnoredFields {
+	let value = PreserveIgnoredFields {
 		value: Enum::A {
 			field1: "Hello".into(),
 			field2: "World!".into(),
@@ -118,7 +118,7 @@ fn round_trip_adjecently_tagged_enum() {
 		},
 	}
 
-	let value = PreverveIgnoredFields {
+	let value = PreserveIgnoredFields {
 		value: Enum::A {
 			field1: "Hello".into(),
 			field2: "World!".into(),
@@ -159,7 +159,7 @@ fn round_trip_untagged_enum() {
 		},
 	}
 
-	let value = PreverveIgnoredFields {
+	let value = PreserveIgnoredFields {
 		value: Enum::A {
 			field1: "Hello".into(),
 			field2: "World!".into(),

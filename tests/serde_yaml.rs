@@ -2,7 +2,7 @@
 
 use assert2::{assert, let_assert};
 use indoc::indoc;
-use serde_ignored_fields::PreverveIgnoredFields;
+use serde_ignored_fields::PreserveIgnoredFields;
 
 #[derive(Debug, Clone, Eq, PartialEq, serde::Deserialize, serde::Serialize)]
 struct Person {
@@ -10,7 +10,7 @@ struct Person {
 	hobby: String,
 }
 
-fn yaml<T: serde::de::DeserializeOwned>(data: &str) -> Result<PreverveIgnoredFields<T, serde_yaml::Mapping>, serde_yaml::Error> {
+fn yaml<T: serde::de::DeserializeOwned>(data: &str) -> Result<PreserveIgnoredFields<T, serde_yaml::Mapping>, serde_yaml::Error> {
 	serde::Deserialize::deserialize(serde_yaml::Deserializer::from_str(data))
 }
 
@@ -68,7 +68,7 @@ fn deserialize_extra() {
 
 #[test]
 fn serialize_extra() {
-	let zohan = PreverveIgnoredFields {
+	let zohan = PreserveIgnoredFields {
 		value: Person {
 			name: "Zohan".to_string(),
 			hobby: "hair-dressing".to_string(),

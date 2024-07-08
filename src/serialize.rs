@@ -1,6 +1,6 @@
-use crate::{PreverveIgnoredFields, SerializeIgnoredFields};
+use crate::{PreserveIgnoredFields, SerializeIgnoredFields};
 
-impl<T, IgnoredFields> serde::Serialize for PreverveIgnoredFields<T, IgnoredFields>
+impl<T, IgnoredFields> serde::Serialize for PreserveIgnoredFields<T, IgnoredFields>
 where
 	T: serde::Serialize,
 	IgnoredFields: SerializeIgnoredFields,

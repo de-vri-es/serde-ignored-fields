@@ -2,7 +2,7 @@
 
 use assert2::{assert, let_assert};
 use indoc::indoc;
-use serde_ignored_fields::PreverveIgnoredFields;
+use serde_ignored_fields::PreserveIgnoredFields;
 
 #[derive(Debug, Clone, Eq, PartialEq, serde::Deserialize, serde::Serialize)]
 struct Person {
@@ -10,7 +10,7 @@ struct Person {
 	hobby: String,
 }
 
-fn toml<T: serde::de::DeserializeOwned>(data: &str) -> Result<PreverveIgnoredFields<T, toml::Table>, toml::de::Error> {
+fn toml<T: serde::de::DeserializeOwned>(data: &str) -> Result<PreserveIgnoredFields<T, toml::Table>, toml::de::Error> {
 	serde::Deserialize::deserialize(toml::Deserializer::new(data))
 }
 
@@ -42,7 +42,7 @@ fn deserialize_extra() {
 
 #[test]
 fn serialize_extra() {
-	let value = PreverveIgnoredFields {
+	let value = PreserveIgnoredFields {
 		value: Person {
 			name: "Zohan".to_string(),
 			hobby: "hair-dressing".to_string(),
