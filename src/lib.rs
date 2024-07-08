@@ -3,6 +3,12 @@ mod features;
 mod key;
 mod serialize;
 
+#[cfg(feature = "value")]
+pub mod value;
+
+#[cfg(feature = "value")]
+pub use value::{Value, Map};
+
 #[derive(Debug, Clone)]
 pub struct PreverveIgnoredFields<T, U> {
 	pub value: T,
