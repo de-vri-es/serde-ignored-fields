@@ -145,9 +145,13 @@ where
 }
 
 /// Wrapper for a [`serde::de::MapAccess`] to preserve ignored fields.
-struct MapAccess<'a, 'de, M, IgnoredFields> {
+struct MapAccess<'a, 'de, M, IgnoredFields>
+where
+	M: serde::de::MapAccess<'de>,
+	IgnoredFields: crate::DeserializeIgnoredFields<'de>,
+{
 	/// The parent [`serde::de::MapAccess`] being wrapped.
-	parent: M,
+	parent: Option<M>,
 
 	/// The collection to add ignored fields to.
 	ignored_fields: &'a mut IgnoredFields,
@@ -159,11 +163,15 @@ struct MapAccess<'a, 'de, M, IgnoredFields> {
 	retrieved_key: bool,
 }
 
-impl<'a, 'de, M, IgnoredFields> MapAccess<'a, 'de, M, IgnoredFields> {
+impl<'a, 'de, M, IgnoredFields> MapAccess<'a, 'de, M, IgnoredFields>
+where
+	M: serde::de::MapAccess<'de>,
+	IgnoredFields: crate::DeserializeIgnoredFields<'de>,
+{
 	/// Wrap an existing [`serde::de::MapAccess`].
 	fn new(parent: M, ignored_fields: &'a mut IgnoredFields) -> Self {
 		Self {
-			parent,
+			parent: Some(parent),
 			ignored_fields,
 			last_key: None,
 			retrieved_key: false,
@@ -179,7 +187,10 @@ where
 	type Error = M::Error;
 
 	fn size_hint(&self) -> Option<usize> {
-		self.parent.size_hint()
+		match &self.parent {
+			None => Some(0),
+			Some(parent) => parent.size_hint(),
+		}
 	}
 
 	fn next_key_seed<K: serde::de::DeserializeSeed<'de>>(&mut self, seed: K) -> Result<Option<K::Value>, Self::Error> {
@@ -194,19 +205,53 @@ where
 			self.ignored_fields.insert(key, value)?;
 		}
 
-		self.retrieved_key = true;
-		self.last_key = None;
-		let result = self.parent.next_key_seed(CaptureKey::new(seed, &mut self.last_key));
-		eprintln!("next_key_seed: {:?}", self.last_key);
-		result
+		let parent = match self.parent.as_mut() {
+			Some(x) => x,
+			None => return Ok(None),
+		};
+
+		match parent.next_key_seed(CaptureKey::new(seed, &mut self.last_key))? {
+			Some(x) => {
+				self.retrieved_key = true;
+				Ok(Some(x))
+			},
+			None => {
+				self.parent = None;
+				Ok(None)
+			},
+		}
 	}
 
 	fn next_value_seed<V: serde::de::DeserializeSeed<'de>>(&mut self, seed: V) -> Result<V::Value, Self::Error> {
 		self.retrieved_key = false;
-		let result = self.parent
+
+		let parent = self.parent.as_mut().expect("called `next_key_seed` without matching call to `next_key_seed`");
+		let result = parent
 			.next_value_seed(CaptureIgnored::new(seed, self.last_key.take(), self.ignored_fields));
-		eprintln!("next_value_seed: {:?}", self.ignored_fields);
 		result
+	}
+}
+
+impl<'a, 'de, M, IgnoredFields> Drop for MapAccess<'a, 'de, M, IgnoredFields>
+where
+	M: serde::de::MapAccess<'de>,
+	IgnoredFields: crate::DeserializeIgnoredFields<'de>,
+{
+	fn drop(&mut self) {
+		if let Some(mut parent) = self.parent.take() {
+			loop {
+				let (key, value) = match parent.next_entry() {
+					Ok(None) => break,
+					Ok(Some(x)) => x,
+					Err(e) => {
+						todo!();
+					}
+				};
+				if let Err(e) = self.ignored_fields.insert::<M::Error>(key, value) {
+					todo!();
+				}
+			}
+		}
 	}
 }
 
