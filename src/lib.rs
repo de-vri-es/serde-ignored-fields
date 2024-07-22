@@ -1,6 +1,6 @@
 //! De-serialize and re-serialize a type while preserving ignored fields.
 //!
-//! Sometimes you may wish to preserve the unknown fields of something you are deserializing.
+//! Sometimes you may wish to preserve the ignored fields of something you are deserializing.
 //! If you are in controll of the type, you could make use of the `#[serde(flatten)]` attribute:
 //! ```
 //! # fn main() -> Result<(), Box<dyn std::error::Error>>{
@@ -76,8 +76,8 @@
 //! and it must call [`serde::Deserializer::deserialize_ignored_any()`] for all ignored fields.
 //!
 //! In particular, this means that it will not work for *externally* tagged enums, *internally* tagged enums and *untagged* enums.
-//! These serialization forms have to look at fields before knowing which are actually unknown.
-//! As a consequence, they do not call `deserialize_ignored_any()`.
+//! These serialization forms have to look at fields before knowing which of the fields are actually going to be ignored.
+//! It *does* work with adjectently tagged enums.
 //!
 //! It also means that it will not work for types that first deserialize into something like [`serde_json::Value`] before processing the value further.
 //! When deserialized, the [`serde_json::Value`] uses all fields.

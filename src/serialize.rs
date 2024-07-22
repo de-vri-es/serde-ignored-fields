@@ -113,6 +113,7 @@ where
 	}
 
 	fn serialize_some<T: ?Sized + serde::Serialize>(self, value: &T) -> Result<Self::Ok, Self::Error> {
+		// TODO: is this a problem?
 		serde::Serialize::serialize(value, self)
 	}
 
