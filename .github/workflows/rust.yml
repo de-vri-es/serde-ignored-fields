@@ -1,0 +1,36 @@
+name: CI
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["*"]
+
+jobs:
+  CI:
+    strategy:
+      matrix:
+        include:
+          - toolchain: stable
+            features: --features serde_json,serde_yaml,serde_yml,toml
+          - toolchain: nightly
+            features: --all-features
+    name: Build and test on ${{ matrix.toolchain }} with all features
+    env:
+      RUSTFLAGS: -Dwarnings
+      RUSTDOCFLAGS: -Dwarnings
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Install latest ${{ matrix.toolchain }} toolchain
+        run: |
+          rustup toolchain install  ${{ matrix.toolchain }} --profile minimal --component clippy
+          rustup default  ${{ matrix.toolchain }}
+      - name: Clippy
+        run: cargo clippy --release --color=always ${{ matrix.features }}
+      - name: Doc
+        run: cargo doc --release --color=always ${{ matrix.features }}
+      - name: Build
+        run: cargo build --release --color=always ${{ matrix.features }}
+      - name: Test
+        run: cargo test --release --color=always ${{ matrix.features }}
