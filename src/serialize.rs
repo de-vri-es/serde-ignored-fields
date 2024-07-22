@@ -140,12 +140,13 @@ where
 
 	fn serialize_newtype_variant<T: ?Sized + serde::Serialize>(
 		self,
-		_name: &'static str,
-		_variant_index: u32,
-		_variant: &'static str,
-		_value: &T,
+		name: &'static str,
+		variant_index: u32,
+		variant: &'static str,
+		value: &T,
 	) -> Result<Self::Ok, Self::Error> {
-		Err(serde::ser::Error::custom("invalid type `enum`: can only re-serialize a map or struct with ignored fields"))
+		let value = &SerializeWithIgnoredFields::new(value, self.ignored_fields);
+		self.inner.serialize_newtype_variant(name, variant_index, variant, value)
 	}
 
 	fn serialize_seq(self, _len: Option<usize>) -> Result<Self::SerializeSeq, Self::Error> {
@@ -179,7 +180,7 @@ where
 		self,
 		_name: &'static str,
 		_variant_index: u32,
-		_vartiant_name: &'static str,
+		_variant_name: &'static str,
 		_len: usize,
 	) -> Result<Self::SerializeStructVariant, Self::Error> {
 		Err(serde::ser::Error::custom("invalid type `enum`: can only re-serialize a map or struct with ignored fields"))
@@ -255,5 +256,30 @@ where
 			self.inner.serialize_entry(key, value)?
 		}
 		self.inner.end()
+	}
+}
+
+struct SerializeFields {
+}
+
+struct SerializeWithIgnoredFields<'a, T: ?Sized, U> {
+	value: &'a T,
+	ignored_fields: &'a U,
+}
+
+impl<'a, T: ?Sized, U> SerializeWithIgnoredFields<'a, T, U> {
+	fn new(value: &'a T, ignored_fields: &'a U) -> Self {
+		Self { value, ignored_fields }
+	}
+}
+
+impl<'a, T: ?Sized, U> serde::Serialize for SerializeWithIgnoredFields<'a, T, U>
+where
+	T: serde::Serialize,
+	U: crate::SerializeIgnoredFields,
+{
+	fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+		let serializer = Serializer::new(serializer, self.ignored_fields);
+		self.value.serialize(serializer)
 	}
 }

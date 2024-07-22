@@ -13,7 +13,7 @@ where
 	}
 }
 
-/// Wrapper for a [`serde::Deserializer`] or [`serde::Visitor`] to preserve ignored fields of a map.
+/// Wrapper for a [`serde::Deserializer`] or [`serde::Visitor`] and [`serde::VariantAccess`] to preserve ignored fields of a map.
 struct Wrap<'a, Inner, IgnoredFields> {
 	/// The wrapped [`serde::Deserializer`] or [`serde::de::Visitor`].
 	inner: Inner,
@@ -23,7 +23,7 @@ struct Wrap<'a, Inner, IgnoredFields> {
 }
 
 impl<'a, Inner, IgnoredFields> Wrap<'a, Inner, IgnoredFields> {
-	/// Wrapper for a [`serde::Deserializer`] or [`serde::Visitor`].
+	/// Wrap the serde object.
 	fn new(inner: Inner, ignored_fields: &'a mut IgnoredFields) -> Self {
 		Self { inner, ignored_fields }
 	}
@@ -131,13 +131,9 @@ where
 	type Value = V::Value;
 
 	fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
-		// TODO: improve error message
+		// TODO: improve error message by implementing all visitors?
 		self.inner.expecting(formatter)
 	}
-
-	// fn visit_newtype_struct<D: serde::Deserializer<'de>>(self, deserializer: D) -> Result<Self::Value, D::Error> {
-	// 	self.inner.visit_newtype_struct(Wrap::new(deserializer, self.ignored_fields))
-	// }
 
 	fn visit_map<A: serde::de::MapAccess<'de>>(self, map: A) -> Result<Self::Value, A::Error> {
 		let mut error = None;
@@ -147,6 +143,51 @@ where
 		} else {
 			Ok(value)
 		}
+	}
+
+	fn visit_enum<A: serde::de::EnumAccess<'de>>(self, data: A) -> Result<Self::Value, A::Error> {
+		self.inner.visit_enum(EnumAccess::new(data, self.ignored_fields))
+	}
+}
+
+impl <'a, 'de, A, IgnoredFields> serde::de::VariantAccess<'de> for Wrap<'a, A, IgnoredFields>
+where
+	A: serde::de::VariantAccess<'de>,
+	IgnoredFields: DeserializeIgnoredFields<'de>,
+{
+	type Error = A::Error;
+
+	fn unit_variant(self) -> Result<(), Self::Error> {
+		Err(serde::de::Error::custom("can not preserve unknown fields of unit variants"))
+	}
+
+	fn newtype_variant_seed<T: serde::de::DeserializeSeed<'de>>(self, _seed: T) -> Result<T::Value, Self::Error> {
+		self.inner.newtype_variant_seed(Wrap::new(_seed, self.ignored_fields))
+	}
+
+	fn tuple_variant<V: serde::de::Visitor<'de>>(self, _len: usize, _visitor: V) -> Result<V::Value, Self::Error> {
+		Err(serde::de::Error::custom("can not preserve unknown fields of tuple variants"))
+	}
+
+	fn struct_variant<V: serde::de::Visitor<'de>>(
+		self,
+		fields: &'static [&'static str],
+		visitor: V,
+	) -> Result<V::Value, Self::Error> {
+		let visitor = Wrap::new(visitor, self.ignored_fields);
+		self.inner.struct_variant(fields, visitor)
+	}
+}
+
+impl <'a, 'de, T, IgnoredFields> serde::de::DeserializeSeed<'de> for Wrap<'a, T, IgnoredFields>
+where
+	T: serde::de::DeserializeSeed<'de>,
+	IgnoredFields: DeserializeIgnoredFields<'de>,
+{
+	type Value = T::Value;
+
+	fn deserialize<D: serde::Deserializer<'de>>(self, deserializer: D) -> Result<Self::Value, D::Error> {
+		self.inner.deserialize(Wrap::new(deserializer, self.ignored_fields))
 	}
 }
 
@@ -264,6 +305,40 @@ where
 				}
 			}
 		}
+	}
+}
+
+/// Wrapper for a [`serde::de::EnumAcces`] to preserve ignored fields.
+struct EnumAccess<'a, A, IgnoredFields> {
+	/// The parent [`serde::de::EnumAcces`] being wrapped.
+	parent: A,
+
+	/// The collection to add ignored fields to.
+	ignored_fields: &'a mut IgnoredFields,
+}
+
+impl<'a, A, IgnoredFields> EnumAccess<'a, A, IgnoredFields> {
+	/// Wrap an existing [`serde::de::EnumAcces`].
+	fn new(parent: A, ignored_fields: &'a mut IgnoredFields) -> Self {
+		Self {
+			parent,
+			ignored_fields,
+		}
+	}
+}
+
+impl<'a, 'de, A, U> serde::de::EnumAccess<'de> for EnumAccess<'a, A, U>
+where
+	A: serde::de::EnumAccess<'de> + 'a,
+	U: DeserializeIgnoredFields<'de>,
+{
+	type Variant = Wrap<'a, A::Variant, U>;
+	type Error = A::Error;
+
+	fn variant_seed<V: serde::de::DeserializeSeed<'de>>(self, seed: V) -> Result<(V::Value, Self::Variant), Self::Error> {
+		let (value, variant) = self.parent.variant_seed(seed)?;
+		let variant = Wrap::new(variant, self.ignored_fields);
+		Ok((value, variant))
 	}
 }
 

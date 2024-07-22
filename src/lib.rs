@@ -79,6 +79,10 @@
 //! These serialization forms have to look at fields before knowing which of the fields are actually going to be ignored.
 //! It *does* work with adjectently tagged enums.
 //!
+//! ## Serialize implementations
+//!
+//! Thirdly, the type `T` being serialized must call `
+//!
 //! It also means that it will not work for types that first deserialize into something like [`serde_json::Value`] before processing the value further.
 //! When deserialized, the [`serde_json::Value`] uses all fields.
 //! The next processing step may discard them again, but there is no way for [`PreserveIgnoredFields`] to know about this.

@@ -37,17 +37,20 @@ macro_rules! yaml {
 fn error_on_externally_tagged_enum() {
 	#[derive(Debug, Clone, Eq, PartialEq, serde::Deserialize, serde::Serialize)]
 	enum Enum {
-		A {
-			field1: String,
-			field2: String,
-		},
+		A(Struct),
+	}
+
+	#[derive(Debug, Clone, Eq, PartialEq, serde::Deserialize, serde::Serialize)]
+	struct Struct {
+		field1: String,
+		field2: String,
 	}
 
 	let value = PreserveIgnoredFields {
-		value: Enum::A {
+		value: Enum::A(Struct {
 			field1: "Hello".into(),
 			field2: "World!".into(),
-		},
+		}),
 		ignored_fields: yaml! {
 			extra: {
 				something: 5,
@@ -56,15 +59,18 @@ fn error_on_externally_tagged_enum() {
 	};
 
 	let yaml = indoc!(r#"
-		A:
-		  field1: Hello
-		  field2: World!
+		!A
+		field1: Hello
+		field2: World!
 		extra:
 		  something: 5
 	"#);
 
-	check!(let Err(_) = serde_yaml::to_string(&value));
-	check!(let Err(_) = parse::<Enum>(yaml));
+	let_assert!(Ok(parsed) = parse::<Enum>(yaml));
+	assert!(parsed == value);
+
+	let_assert!(Ok(serialized) = serde_yaml::to_string(&value));
+	assert!(serialized == yaml);
 }
 
 #[test]
