@@ -30,10 +30,8 @@
 //! # }
 //! ```
 //!
-//! But if you are not in control of the type you are out of luck.
-//!
-//! Until now!
-//! Now you can wrap your type in [`PreserveIgnoredFields`]:
+//! This crate can help you if you are *not* in control of the type.
+//! You can wrap the type in [`PreserveIgnoredFields`]:
 //!
 //! ```
 //! # fn main() -> Result<(), Box<dyn std::error::Error>>{
@@ -71,23 +69,27 @@
 //!
 //! In [`serde`] terms: the [`serde::Deserializer`] must support [`serde::Deserializer::deserialize_any()`].
 //!
-//! ## Deserialize implementations
-//! Secondly, the type `T` being deserialized must be represented as a key/value map,
-//! and it must call [`serde::Deserializer::deserialize_ignored_any()`] for all ignored fields.
+//! ## Serialize/Deserialize implementations
+//! Secondly, the type `T` being (de)serialized must be represented as a key/value map,
+//! and it must call [`serde::Deserializer::deserialize_ignored_any()`] to deserialize ignored fields.
+//! It must not produce an error when encountering an unknown field (so the type must not use `#[serde(deny_unknown_fields)]`).
 //!
 //! In particular, this means that it will not work for *externally* tagged enums, *internally* tagged enums and *untagged* enums.
-//! These serialization forms have to look at fields before knowing which of the fields are actually going to be ignored.
-//! It *does* work with adjectently tagged enums.
+//! Externally tagged enums are not always serialized as key/value maps (the serialization format controls their layout).
+//! Internally and untagged enums have to look at fields before knowing which of the fields are actually going to be ignored.
+//! This crate *does* work with adjectently tagged enums.
 //!
 //! It also means that it will not work for types that first deserialize into something like [`serde_json::Value`] before processing the value further.
 //! When deserialized, the [`serde_json::Value`] uses all fields.
 //! The next processing step may discard them again, but there is no way for [`PreserveIgnoredFields`] to know about this.
 //!
-//! Structs that use the standard serde derive macros from [`serde`] will always work.
-//! Enums using the derive macros will only work if they are *adjectently tagged* (they have a serde `tag = "..."` *and* `content = "..."` attribute).
+//! In summary:
+//! Using [`PreserveIgnoredFields`] with structs that use the standard serde derive macros from [`serde`] will work, as long as you did not use `#[serde(deny_unknown_fields)]`.
+//! Using it with enums that use the standard derive macros will only work if they are *adjectently tagged* (they have a serde `tag = "..."` *and* `content = "..."` attribute).
 
 #![warn(missing_docs)]
 #![warn(missing_debug_implementations)]
+#![cfg_attr(feature = "doc-cfg", feature(doc_cfg))]
 
 mod deserialize;
 mod features;
@@ -96,8 +98,11 @@ mod serialize;
 
 /// Wrapper to preserve ignored fields.
 ///
-/// The wrapped type is stored in [`Self::value`].
-/// Ignored fields are stored in [`Self::ignored_fields`].
+/// The wrapped type is stored in the [value][Self::value] field.
+/// Ignored fields are stored in the [`ignored_fields`][Self::ignored_fields] field.
+///
+/// The `IgnoredFields` type has to implement [`DeserializeIgnoredFields`] for this type to implement [`serde::Deserialize`],
+/// and it has to implement [`SerializeIgnoredFields`] for this type to implement [`serde::Serialize`].
 ///
 /// Be sure the read the [main library documentation](crate) about the limitations.
 #[derive(Debug, Clone, Default, PartialEq)]
