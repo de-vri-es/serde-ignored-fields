@@ -140,7 +140,13 @@ where
 	// }
 
 	fn visit_map<A: serde::de::MapAccess<'de>>(self, map: A) -> Result<Self::Value, A::Error> {
-		self.inner.visit_map(MapAccess::new(map, self.ignored_fields))
+		let mut error = None;
+		let value = self.inner.visit_map(MapAccess::new(map, self.ignored_fields, &mut error))?;
+		if let Some(error) = error {
+			Err(error)
+		} else {
+			Ok(value)
+		}
 	}
 }
 
@@ -156,6 +162,9 @@ where
 	/// The collection to add ignored fields to.
 	ignored_fields: &'a mut IgnoredFields,
 
+	/// Place to store error that can occur during drop.
+	error: &'a mut Option<M::Error>,
+
 	/// The previous key we encountered.
 	last_key: Option<Key<'de>>,
 
@@ -169,19 +178,20 @@ where
 	IgnoredFields: crate::DeserializeIgnoredFields<'de>,
 {
 	/// Wrap an existing [`serde::de::MapAccess`].
-	fn new(parent: M, ignored_fields: &'a mut IgnoredFields) -> Self {
+	fn new(parent: M, ignored_fields: &'a mut IgnoredFields, error: &'a mut Option<M::Error>) -> Self {
 		Self {
 			parent: Some(parent),
 			ignored_fields,
+			error,
 			last_key: None,
 			retrieved_key: false,
 		}
 	}
 }
 
-impl<'a, 'de, M, U> serde::de::MapAccess<'de> for MapAccess<'a, 'de, M, U>
+impl<'a, 'de: 'a, M, U> serde::de::MapAccess<'de> for MapAccess<'a, 'de, M, U>
 where
-	M: serde::de::MapAccess<'de>,
+	M: serde::de::MapAccess<'de> + 'a,
 	U: DeserializeIgnoredFields<'de>,
 {
 	type Error = M::Error;
@@ -244,11 +254,13 @@ where
 					Ok(None) => break,
 					Ok(Some(x)) => x,
 					Err(e) => {
-						todo!();
+						*self.error = Some(e);
+						return;
 					}
 				};
 				if let Err(e) = self.ignored_fields.insert::<M::Error>(key, value) {
-					todo!();
+					*self.error = Some(e);
+					return;
 				}
 			}
 		}
