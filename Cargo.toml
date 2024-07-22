@@ -1,6 +1,6 @@
 [package]
 name = "serde-ignored-fields"
-version = "0.1.0"
+version = "0.0.1"
 license = "BSD-2-Clause"
 
 description = "preserve ignored fields with serde"
@@ -11,6 +11,7 @@ categories = ["parsing"]
 readme = "README.md"
 
 edition = "2021"
+publish = ["crates-io"]
 
 [features]
 serde_json = ["dep:serde_json"]
