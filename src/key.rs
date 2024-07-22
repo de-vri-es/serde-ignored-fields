@@ -24,6 +24,13 @@ pub enum Key<'de> {
 	String(String),
 	Bytes(&'de [u8]),
 	ByteBuf(Vec<u8>),
+	None,
+	Some(Box<Key<'de>>),
+	Unit,
+	NewTypeStruct(Box<Key<'de>>),
+	Seq,
+	Map,
+	Enum,
 }
 
 impl<'de> Key<'de> {
@@ -67,6 +74,13 @@ impl<'de, E: serde::de::Error> serde::de::Deserializer<'de> for KeyDeserializer<
 			Key::String(x) => v.visit_string(x),
 			Key::Bytes(x) => v.visit_borrowed_bytes(x),
 			Key::ByteBuf(x) => v.visit_byte_buf(x),
+			Key::None => v.visit_none(),
+			Key::Some(x) => v.visit_some(x.into_deserializer()),
+			Key::Unit => v.visit_unit(),
+			Key::NewTypeStruct(x) => v.visit_newtype_struct(x.into_deserializer()),
+			Key::Seq => Err(Self::Error::custom("key of ingored field is a list, only primitive types are supported")),
+			Key::Map => Err(Self::Error::custom("key of ingored field is a map, only primitive types are supported")),
+			Key::Enum => Err(Self::Error::custom("key of ingored field is an enum, only primitive types are supported")),
 		}
 	}
 

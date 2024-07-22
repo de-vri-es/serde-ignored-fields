@@ -386,7 +386,46 @@ where
 		self.inner.visit_bytes(value)
 	}
 
-	// TODO: implement remaining visit functions to forward and record error details for CaptureIgnored.
+	fn visit_none<E: serde::de::Error>(self) -> Result<Self::Value, E> {
+		*self.key = Some(Key::None);
+		self.inner.visit_none()
+	}
+
+	fn visit_some<D: serde::Deserializer<'de>>(self, deserializer: D) -> Result<Self::Value, D::Error> {
+		let mut inner_key = None;
+		let deserializer = CaptureKey::new(deserializer, &mut inner_key);
+		let result = self.inner.visit_some(deserializer);
+		*self.key = inner_key.map(|x| Key::Some(Box::new(x)));
+		result
+	}
+
+	fn visit_unit<E: serde::de::Error>(self) -> Result<Self::Value, E> {
+		*self.key = Some(Key::Unit);
+		self.inner.visit_none()
+	}
+
+	fn visit_newtype_struct<D: serde::Deserializer<'de>>(self, deserializer: D) -> Result<Self::Value, D::Error> {
+		let mut inner_key = None;
+		let deserializer = CaptureKey::new(deserializer, &mut inner_key);
+		let result = self.inner.visit_some(deserializer);
+		*self.key = inner_key.map(|x| Key::NewTypeStruct(Box::new(x)));
+		result
+	}
+
+	fn visit_seq<A: serde::de::SeqAccess<'de>>(self, seq: A) -> Result<Self::Value, A::Error> {
+		*self.key = Some(Key::Seq);
+		self.inner.visit_seq(seq)
+	}
+
+	fn visit_map<A: serde::de::MapAccess<'de>>(self, map: A) -> Result<Self::Value, A::Error> {
+		*self.key = Some(Key::Map);
+		self.inner.visit_map(map)
+	}
+
+	fn visit_enum<A: serde::de::EnumAccess<'de>>(self, data: A) -> Result<Self::Value, A::Error> {
+		*self.key = Some(Key::Enum);
+		self.inner.visit_enum(data)
+	}
 }
 
 /// Wrapper for a [`serde::de::DeserializeSeed`], [`serde::Deserializer`] and [`serde::de::Visitor`] to add `ignored_any` map entries to `self.ignored_fields`.
@@ -475,7 +514,6 @@ where
 	fn deserialize_ignored_any<V: serde::de::Visitor<'de>>(self, visitor: V) -> Result<V::Value, Self::Error> {
 		use serde::de::{Deserialize, Error};
 
-		// TODO: better error
 		let key = self
 			.key
 			.ok_or_else(|| Self::Error::custom("unsupported key type for ignored field"))?
