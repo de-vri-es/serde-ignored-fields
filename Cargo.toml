@@ -1,6 +1,6 @@
 [package]
 name = "serde-ignored-fields"
-version = "0.0.1"
+version = "0.1.0"
 license = "BSD-2-Clause"
 
 description = "preserve ignored fields with serde"
