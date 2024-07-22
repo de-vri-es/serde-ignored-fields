@@ -8,6 +8,7 @@ repository = "https://github.com/de-vri-es/serde-ignored-fields"
 documentation = "https://docs.rs/serde-ignored-fields"
 keywords = ["serde", "ignored", "fields"]
 categories = ["parsing"]
+readme = "README.md"
 
 edition = "2021"
 
