@@ -54,6 +54,12 @@ pub struct KeyDeserializer<'de, E> {
 impl<'de, E: serde::de::Error> serde::de::Deserializer<'de> for KeyDeserializer<'de, E> {
 	type Error = E;
 
+	serde::forward_to_deserialize_any! {
+		bool i8 i16 i32 i64 i128 u8 u16 u32 u64 u128 f32 f64 char str string
+		bytes byte_buf option unit unit_struct newtype_struct seq tuple
+		tuple_struct map struct enum identifier ignored_any
+	}
+
 	fn deserialize_any<V: serde::de::Visitor<'de>>(self, v: V) -> Result<V::Value, Self::Error> {
 		match self.key {
 			Key::Bool(x) => v.visit_bool(x),
@@ -78,15 +84,15 @@ impl<'de, E: serde::de::Error> serde::de::Deserializer<'de> for KeyDeserializer<
 			Key::Some(x) => v.visit_some(x.into_deserializer()),
 			Key::Unit => v.visit_unit(),
 			Key::NewTypeStruct(x) => v.visit_newtype_struct(x.into_deserializer()),
-			Key::Seq => Err(Self::Error::custom("key of ingored field is a list, only primitive types are supported")),
-			Key::Map => Err(Self::Error::custom("key of ingored field is a map, only primitive types are supported")),
-			Key::Enum => Err(Self::Error::custom("key of ingored field is an enum, only primitive types are supported")),
+			Key::Seq => Err(Self::Error::custom(
+				"key of ingored field is a list, only primitive types are supported",
+			)),
+			Key::Map => Err(Self::Error::custom(
+				"key of ingored field is a map, only primitive types are supported",
+			)),
+			Key::Enum => Err(Self::Error::custom(
+				"key of ingored field is an enum, only primitive types are supported",
+			)),
 		}
-	}
-
-	serde::forward_to_deserialize_any! {
-		bool i8 i16 i32 i64 i128 u8 u16 u32 u64 u128 f32 f64 char str string
-		bytes byte_buf option unit unit_struct newtype_struct seq tuple
-		tuple_struct map struct enum identifier ignored_any
 	}
 }

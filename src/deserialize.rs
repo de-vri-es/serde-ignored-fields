@@ -141,7 +141,9 @@ where
 
 	fn visit_map<A: serde::de::MapAccess<'de>>(self, map: A) -> Result<Self::Value, A::Error> {
 		let mut error = None;
-		let value = self.inner.visit_map(MapAccess::new(map, self.ignored_fields, &mut error))?;
+		let value = self
+			.inner
+			.visit_map(MapAccess::new(map, self.ignored_fields, &mut error))?;
 		if let Some(error) = error {
 			Err(error)
 		} else {
@@ -208,7 +210,9 @@ where
 
 		// If someone doesn't call `next_value_seed()` for the last key we also add it to ignored fields.
 		if self.retrieved_key {
-			let key = self.last_key.take()
+			let key = self
+				.last_key
+				.take()
 				.ok_or_else(|| Self::Error::custom("unsupported key type for ignored field"))?;
 			let key = serde::Deserialize::deserialize(key.into_deserializer::<Self::Error>())?;
 			let value = self.next_value()?;
@@ -235,9 +239,11 @@ where
 	fn next_value_seed<V: serde::de::DeserializeSeed<'de>>(&mut self, seed: V) -> Result<V::Value, Self::Error> {
 		self.retrieved_key = false;
 
-		let parent = self.parent.as_mut().expect("called `next_key_seed` without matching call to `next_key_seed`");
-		let result = parent
-			.next_value_seed(CaptureIgnored::new(seed, self.last_key.take(), self.ignored_fields));
+		let parent = self
+			.parent
+			.as_mut()
+			.expect("called `next_key_seed` without matching call to `next_key_seed`");
+		let result = parent.next_value_seed(CaptureIgnored::new(seed, self.last_key.take(), self.ignored_fields));
 		result
 	}
 }
@@ -256,7 +262,7 @@ where
 					Err(e) => {
 						*self.error = Some(e);
 						return;
-					}
+					},
 				};
 				if let Err(e) = self.ignored_fields.insert::<M::Error>(key, value) {
 					*self.error = Some(e);
@@ -363,10 +369,6 @@ where
 {
 	type Value = V::Value;
 
-	fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
-		self.inner.expecting(formatter)
-	}
-
 	forward_visitor!(
 		(visit_bool, bool, Bool)
 		(visit_i8, i8, I8)
@@ -387,6 +389,10 @@ where
 		(visit_borrowed_bytes, &'de [u8], Bytes)
 		(visit_byte_buf, Vec<u8>, ByteBuf)
 	);
+
+	fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+		self.inner.expecting(formatter)
+	}
 
 	fn visit_str<E: serde::de::Error>(self, value: &str) -> Result<Self::Value, E> {
 		*self.key = Some(Key::String(value.into()));

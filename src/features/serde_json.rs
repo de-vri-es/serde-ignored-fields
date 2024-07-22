@@ -8,10 +8,8 @@ impl<'de> crate::DeserializeIgnoredFields<'de> for serde_json::Map<String, serde
 			Entry::Vacant(x) => {
 				x.insert(value);
 				Ok(())
-			}
-			Entry::Occupied(x) => {
-				Err(E::custom(format!("duplicate field: {:?}", x.key())))
-			}
+			},
+			Entry::Occupied(x) => Err(E::custom(format!("duplicate field: {:?}", x.key()))),
 		}
 	}
 }

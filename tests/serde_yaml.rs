@@ -10,7 +10,9 @@ struct Person {
 	hobby: String,
 }
 
-fn yaml<T: serde::de::DeserializeOwned>(data: &str) -> Result<PreserveIgnoredFields<T, serde_yaml::Mapping>, serde_yaml::Error> {
+fn yaml<T: serde::de::DeserializeOwned>(
+	data: &str,
+) -> Result<PreserveIgnoredFields<T, serde_yaml::Mapping>, serde_yaml::Error> {
 	serde::Deserialize::deserialize(serde_yaml::Deserializer::from_str(data))
 }
 

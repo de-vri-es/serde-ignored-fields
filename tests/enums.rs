@@ -4,7 +4,9 @@ use assert2::{assert, check, let_assert};
 use indoc::indoc;
 use serde_ignored_fields::PreserveIgnoredFields;
 
-fn parse<T: serde::de::DeserializeOwned>(data: &str) -> Result<PreserveIgnoredFields<T, serde_yaml::Mapping>, serde_yaml::Error> {
+fn parse<T: serde::de::DeserializeOwned>(
+	data: &str,
+) -> Result<PreserveIgnoredFields<T, serde_yaml::Mapping>, serde_yaml::Error> {
 	serde::Deserialize::deserialize(serde_yaml::Deserializer::from_str(data))
 }
 

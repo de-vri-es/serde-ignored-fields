@@ -10,7 +10,9 @@ struct Person {
 	hobby: String,
 }
 
-fn json<T: serde::de::DeserializeOwned>(data: &str) -> Result<PreserveIgnoredFields<T, serde_json::Map<String, serde_json::Value>>, serde_json::Error> {
+fn json<T: serde::de::DeserializeOwned>(
+	data: &str,
+) -> Result<PreserveIgnoredFields<T, serde_json::Map<String, serde_json::Value>>, serde_json::Error> {
 	serde::Deserialize::deserialize(&mut serde_json::Deserializer::from_str(data))
 }
 
