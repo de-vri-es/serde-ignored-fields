@@ -59,6 +59,9 @@
 //! # }
 //! ```
 //!
+//! If you enable the `schemars` feature, [`PreserveIgnoredFields<T, U>`] implements the [`schemars::JsonSchema`] trait.
+//! It forwards directly to the [`schemars::JsonSchema`] implementation of `T`.
+//!
 //! # Limitations
 //! Because `serde` does not provide first class support for capturing ignored fields, there are some limitations.
 //!
@@ -105,6 +108,9 @@ mod serialize;
 /// and it has to implement [`SerializeIgnoredFields`] for this type to implement [`serde::Serialize`].
 ///
 /// Be sure the read the [main library documentation](crate) about the limitations.
+///
+/// If you enable the `schemars` feature, this type implements the [`schemars::JsonSchema`] trait.
+/// The implementation forwards directly to the implementation of `T`.
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct PreserveIgnoredFields<T, U> {
 	/// The wrapped value.

@@ -11,7 +11,7 @@ jobs:
       matrix:
         include:
           - toolchain: stable
-            features: --features serde_json,serde_yaml,serde_yml,toml
+            features: --features schemars,serde_json,serde_yaml,serde_yml,toml
           - toolchain: nightly
             features: --all-features
     name: Build and test on ${{ matrix.toolchain }} with all features
