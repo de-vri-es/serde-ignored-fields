@@ -13,3 +13,7 @@ mod serde_yml;
 #[cfg(feature = "toml")]
 #[cfg_attr(feature = "doc-cfg", doc(cfg(feature = "serde_toml")))]
 mod toml;
+
+#[cfg(feature = "schemars")]
+#[cfg_attr(feature = "doc-cfg", doc(cfg(feature = "schemars")))]
+mod schemars;

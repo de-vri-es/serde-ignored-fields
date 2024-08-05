@@ -1,2 +1,5 @@
+# Unreleased
+- [add][minor] Add optional support for the `schemars` crate.
+
 # Version 0.1.0 - 2024-07-22
 - [add][major] Initial release.

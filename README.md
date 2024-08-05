@@ -42,6 +42,9 @@ assert!(thing.ignored_fields["base_plate"]["material"] == "aluminite");
 assert!(thing.ignored_fields["casing"] == "malleable logarithmic");
 ```
 
+If you enable the `schemars` feature, [`PreserveIgnoredFields<T, U>`] implements the [`schemars::JsonSchema`] trait.
+It forwards directly to the [`schemars::JsonSchema`] implementation of `T`.
+
 ## Limitations
 Because `serde` does not provide first class support for capturing ignored fields, there are some limitations.
 
@@ -71,6 +74,7 @@ Using [`PreserveIgnoredFields`] with structs that use the standard serde derive 
 Using it with enums that use the standard derive macros will only work if they are *adjectently tagged* (they have a serde `tag = "..."` *and* `content = "..."` attribute).
 
 [`PreserveIgnoredFields`]: https://docs.rs/serde-ignored-fields/latest/serde_ignored_fields/struct.PreserveIgnoredFields.html
+[`schemars::JsonSchema`]: https://docs.rs/schemars/latest/schemars/trait.JsonSchema.html
 [`serde`]: https://docs.rs/serde/
 [`serde::Deserializer`]: https://docs.rs/serde/latest/serde/trait.Deserializer.html
 [`serde::Deserializer::deserialize_any()`]: https://docs.rs/serde/latest/serde/trait.Deserializer.html#tymethod.deserialize_any
